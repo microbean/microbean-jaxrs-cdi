@@ -17,6 +17,12 @@
 package org.microbean.jaxrs.cdi;
 
 import java.lang.annotation.Annotation;
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -39,40 +45,54 @@ import javax.enterprise.context.spi.CreationalContext;
 
 import javax.enterprise.event.Observes;
 
+import javax.enterprise.inject.Any;
+
 import javax.enterprise.inject.spi.AfterBeanDiscovery;
 import javax.enterprise.inject.spi.AnnotatedType;
 import javax.enterprise.inject.spi.Bean;
+import javax.enterprise.inject.spi.BeanAttributes;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.Extension;
 import javax.enterprise.inject.spi.ProcessAnnotatedType;
-import javax.enterprise.inject.spi.ProcessBean;
+import javax.enterprise.inject.spi.ProcessBeanAttributes;
 import javax.enterprise.inject.spi.WithAnnotations;
 
+import javax.enterprise.util.AnnotationLiteral;
+
+import javax.inject.Qualifier;
 import javax.inject.Singleton;
 
 import javax.ws.rs.Path;
 
 import javax.ws.rs.core.Application;
+import javax.ws.rs.ApplicationPath;
 
+/**
+ * An {@link Extension} that makes {@link Application}s and resource
+ * classes available as CDI beans.
+ *
+ * @author <a href="https://about.me/lairdnelson"
+ * target="_parent">Laird Nelson</a>
+ */
 public class JaxRsExtension implements Extension {
 
   private final Set<Class<?>> potentialResourceClasses;
 
   private final Set<Class<?>> potentialProviderClasses;
 
-  private final Set<Bean<?>> applicationBeans;
-  
-  private final Map<Class<?>, Bean<?>> resourceBeans;
+  private final Map<Class<?>, BeanAttributes<?>> resourceBeans;
 
-  private final Map<Class<?>, Bean<?>> providerBeans;
+  private final Map<Class<?>, BeanAttributes<?>> providerBeans;
 
   private final Set<Set<Annotation>> qualifiers;
-  
+
+  /**
+   * Creates a new {@link JaxRsExtension}.
+   */
   public JaxRsExtension() {
     super();
     this.potentialResourceClasses = new HashSet<>();
     this.potentialProviderClasses = new HashSet<>();
-    this.applicationBeans = new HashSet<>();
     this.resourceBeans = new HashMap<>();
     this.providerBeans = new HashMap<>();
     this.qualifiers = new HashSet<>();
@@ -106,20 +126,19 @@ public class JaxRsExtension implements Extension {
     }
   }
 
-  private final <T> void forAllEnabledBeans(@Observes
-                                            final ProcessBean<T> event) {
+  private final <T> void forAllBeanAttributes(@Observes
+                                              final ProcessBeanAttributes<T> event) {
     if (event != null) {
-      final Bean<T> bean = event.getBean();
-      if (bean != null) {
-        final Set<Type> beanTypes = bean.getTypes();
+      final BeanAttributes<T> beanAttributes = event.getBeanAttributes();
+      if (beanAttributes != null) {
+        final Set<Type> beanTypes = beanAttributes.getTypes();
         if (beanTypes != null && !beanTypes.isEmpty()) {
           for (final Type beanType : beanTypes) {
             final Class<?> beanTypeClass;
             if (beanType instanceof Class) {
               beanTypeClass = (Class<?>)beanType;
             } else if (beanType instanceof ParameterizedType) {
-              final ParameterizedType parameterizedBeanType = (ParameterizedType)beanType;
-              final Type rawBeanType = parameterizedBeanType.getRawType();
+              final Object rawBeanType = ((ParameterizedType)beanType).getRawType();
               if (rawBeanType instanceof Class) {
                 beanTypeClass = (Class<?>) rawBeanType;
               } else {
@@ -130,8 +149,7 @@ public class JaxRsExtension implements Extension {
             }
             if (beanTypeClass != null) {
               if (Application.class.isAssignableFrom(beanTypeClass)) {
-                this.applicationBeans.add(bean);
-                this.qualifiers.add(bean.getQualifiers()); // yes, add the set as an element, not the set's elements
+                this.qualifiers.add(beanAttributes.getQualifiers()); // yes, add the set as an element, not the set's elements
               }
 
               // Edge case: it could be an application whose methods
@@ -139,12 +157,13 @@ public class JaxRsExtension implements Extension {
               // resource class.  That's why this isn't an else if.
               if (this.potentialResourceClasses.remove(beanTypeClass)) {
                 // This bean has a beanType that we previously identified as a JAX-RS resource.
-                this.resourceBeans.put(beanTypeClass, bean);
+                event.configureBeanAttributes().addQualifiers(ResourceClass.Literal.INSTANCE);
+                this.resourceBeans.put(beanTypeClass, beanAttributes);
               }
 
               if (this.potentialProviderClasses.remove(beanTypeClass)) {
                 // This bean has a beanType that we previously identified as a Provider class.
-                this.providerBeans.put(beanTypeClass, bean);
+                this.providerBeans.put(beanTypeClass, beanAttributes);
               }
             }
           }
@@ -153,7 +172,20 @@ public class JaxRsExtension implements Extension {
     }
   }
 
-  public final Set<Set<Annotation>> getApplicationQualifiers() {
+  /**
+   * Returns an {@linkplain Collections#unmodifiableSet(Set)
+   * unmodifiable <code>Set</code>} of {@link Set}s of {@linkplain
+   * Qualifier qualifier annotations} that have been found annotating
+   * {@link Application}s.
+   *
+   * <p>This method never returns {@code null}.</p>
+   *
+   * @return a non-{@code null}, {@linkplain Collections#unmodifiableSet(Set)
+   * unmodifiable <code>Set</code>} of {@link Set}s of {@linkplain
+   * Qualifier qualifier annotations} that have been found annotating
+   * {@link Application}s
+   */
+  public final Set<Set<Annotation>> getAllApplicationQualifiers() {
     return Collections.unmodifiableSet(this.qualifiers);
   }
 
@@ -161,64 +193,74 @@ public class JaxRsExtension implements Extension {
                                                       final AfterBeanDiscovery event,
                                                       final BeanManager beanManager) {
     if (event != null && beanManager != null) {
-      for (final Bean<?> bean : this.applicationBeans) {
-        assert bean != null;
-        @SuppressWarnings("unchecked")
-        final Bean<Application> applicationBean = (Bean<Application>)bean;
-        final CreationalContext<Application> cc = beanManager.createCreationalContext(applicationBean);
-        final Class<? extends Annotation> applicationScope = applicationBean.getScope();
-        assert applicationScope != null;
-        Context context = beanManager.getContext(applicationScope);        
-        assert context != null;
-        AlterableContext alterableContext = context instanceof AlterableContext ? (AlterableContext)context : null;
-        Application application = null;                
-        try {
-          if (alterableContext == null) {
-            application = applicationBean.create(cc);
-          } else {
-            try {
-              application = alterableContext.get(applicationBean, cc);
-            } catch (final ContextNotActiveException ok) {
-              alterableContext = null;
-              application = applicationBean.create(cc);
-            }
-          }
-          if (application != null) {            
-            final Set<Class<?>> classes = application.getClasses();
-            if (classes != null && !classes.isEmpty()) {
-              final Set<Annotation> applicationQualifiers = applicationBean.getQualifiers();
-              for (final Class<?> cls : classes) {
-                final Object resourceBean = this.resourceBeans.remove(cls);
-                final Object providerBean = this.providerBeans.remove(cls);
-                if (resourceBean == null && providerBean == null) {
-                  event.addBean()
-                    .scope(Dependent.class) // by default; possibly overridden by read()
-                    .read(beanManager.createAnnotatedType(cls))
-                    .addQualifiers(applicationQualifiers);
-                }
-              }
-            }
-            // Deliberately don't try to deal with getSingletons().
-          }
-        } finally {
+      final Set<Bean<?>> applicationBeans = beanManager.getBeans(Application.class, Any.Literal.INSTANCE);
+      if (applicationBeans != null && !applicationBeans.isEmpty()) {
+        for (final Bean<?> bean : applicationBeans) {
+          @SuppressWarnings("unchecked")
+          final Bean<Application> applicationBean = (Bean<Application>)bean;
+          final CreationalContext<Application> cc = beanManager.createCreationalContext(applicationBean);
+          final Class<? extends Annotation> applicationScope = applicationBean.getScope();
+          assert applicationScope != null;
+          Context context = beanManager.getContext(applicationScope);        
+          assert context != null;
+          AlterableContext alterableContext = context instanceof AlterableContext ? (AlterableContext)context : null;
+          Application application = null;                
           try {
+            if (alterableContext == null) {
+              application = applicationBean.create(cc);
+            } else {
+              try {
+                application = alterableContext.get(applicationBean, cc);
+              } catch (final ContextNotActiveException ok) {
+                alterableContext = null;
+                application = applicationBean.create(cc);
+              }
+            }
             if (application != null) {
-              if (alterableContext == null) {
-                applicationBean.destroy(application, cc);
-              } else {
-                try {
-                  alterableContext.destroy(applicationBean);
-                } catch (final UnsupportedOperationException ok) {
-
+              final Set<Annotation> applicationQualifiers = applicationBean.getQualifiers();
+              final ApplicationPath applicationPath = application.getClass().getAnnotation(ApplicationPath.class);
+              if (applicationPath != null) {
+                event.addBean()
+                  .types(ApplicationPath.class)
+                  .scope(Singleton.class)
+                  .qualifiers(applicationQualifiers)
+                  .createWith(ignored -> applicationPath);
+              }
+              final Set<Class<?>> classes = application.getClasses();
+              if (classes != null && !classes.isEmpty()) {
+                for (final Class<?> cls : classes) {
+                  final Object resourceBean = this.resourceBeans.remove(cls);
+                  final Object providerBean = this.providerBeans.remove(cls);
+                  if (resourceBean == null && providerBean == null) {
+                    event.addBean()
+                      .scope(Dependent.class) // by default; possibly overridden by read()
+                      .read(beanManager.createAnnotatedType(cls))
+                      .addQualifiers(applicationQualifiers)
+                      .addQualifiers(ResourceClass.Literal.INSTANCE);
+                  }
                 }
               }
+              // Deliberately don't try to deal with getSingletons().
             }
           } finally {
-            cc.release();
+            try {
+              if (application != null) {
+                if (alterableContext == null) {
+                  applicationBean.destroy(application, cc);
+                } else {
+                  try {
+                    alterableContext.destroy(applicationBean);
+                  } catch (final UnsupportedOperationException ok) {
+                    
+                  }
+                }
+              }
+            } finally {
+              cc.release();
+            }
           }
         }
       }
-      this.applicationBeans.clear();
 
       // Any potentialResourceClasses left over here are annotated
       // types we discovered, but for whatever reason were not made
@@ -234,11 +276,11 @@ public class JaxRsExtension implements Extension {
       // lying around they went "unclaimed".  Build a synthetic
       // Application for them.
       if (!this.resourceBeans.isEmpty()) {
-        final Set<Entry<Class<?>, Bean<?>>> resourceBeansEntrySet = this.resourceBeans.entrySet();
+        final Set<Entry<Class<?>, BeanAttributes<?>>> resourceBeansEntrySet = this.resourceBeans.entrySet();
         assert resourceBeansEntrySet != null;
         assert !resourceBeansEntrySet.isEmpty();
         final Map<Set<Annotation>, Set<Class<?>>> resourceClassesByQualifiers = new HashMap<>();
-        for (final Entry<Class<?>, Bean<?>> entry : resourceBeansEntrySet) {
+        for (final Entry<Class<?>, BeanAttributes<?>> entry : resourceBeansEntrySet) {
           assert entry != null;
           final Set<Annotation> qualifiers = entry.getValue().getQualifiers();
           Set<Class<?>> resourceClasses = resourceClassesByQualifiers.get(qualifiers);
@@ -263,13 +305,13 @@ public class JaxRsExtension implements Extension {
             allClasses = resourceClasses;
           } else {
             allClasses = new HashSet<>(resourceClasses);
-            final Set<Entry<Class<?>, Bean<?>>> providerBeansEntrySet = this.providerBeans.entrySet();
+            final Set<Entry<Class<?>, BeanAttributes<?>>> providerBeansEntrySet = this.providerBeans.entrySet();
             assert providerBeansEntrySet != null;
             assert !providerBeansEntrySet.isEmpty();
-            final Iterator<Entry<Class<?>, Bean<?>>> providerBeansIterator = providerBeansEntrySet.iterator();
+            final Iterator<Entry<Class<?>, BeanAttributes<?>>> providerBeansIterator = providerBeansEntrySet.iterator();
             assert providerBeansIterator != null;
             while (providerBeansIterator.hasNext()) {
-              final Entry<Class<?>, Bean<?>> providerBeansEntry = providerBeansIterator.next();
+              final Entry<Class<?>, BeanAttributes<?>> providerBeansEntry = providerBeansIterator.next();
               assert providerBeansEntry != null;
               final Set<Annotation> providerBeanQualifiers = providerBeansEntry.getValue().getQualifiers();
               boolean match = false;
@@ -287,12 +329,17 @@ public class JaxRsExtension implements Extension {
             }
           }
 
+          assert resourceBeanQualifiers != null;
+          assert !resourceBeanQualifiers.isEmpty();
+          final Set<Annotation> syntheticApplicationQualifiers = new HashSet<>(resourceBeanQualifiers);
+          syntheticApplicationQualifiers.remove(ResourceClass.Literal.INSTANCE);
+
           event.addBean()
             .addTransitiveTypeClosure(SyntheticApplication.class)
             .scope(Singleton.class)
-            .addQualifiers(resourceBeanQualifiers)
+            .addQualifiers(syntheticApplicationQualifiers)
             .createWith(cc -> new SyntheticApplication(allClasses));
-          this.qualifiers.add(resourceBeanQualifiers);
+          this.qualifiers.add(syntheticApplicationQualifiers);
         }
 
         this.resourceBeans.clear();
@@ -311,18 +358,85 @@ public class JaxRsExtension implements Extension {
     }
   }
 
+  /**
+   * An {@link Application} that has been synthesized out of resource
+   * classes found on the classpath that have not otherwise been
+   * {@linkplain Application#getClasses() claimed} by other {@link
+   * Application} instances.
+   *
+   * @author <a href="https://about.me/lairdnelson"
+   * target="_parent">Laird Nelson</a>
+   *
+   * @see Application
+   */
   public static final class SyntheticApplication extends Application {
 
     private final Set<Class<?>> classes;
     
     SyntheticApplication(final Set<Class<?>> classes) {
       super();
-      this.classes = classes;
+      if (classes == null || classes.isEmpty()) {
+        this.classes = Collections.emptySet();
+      } else {
+        this.classes = Collections.unmodifiableSet(classes);
+      }
     }
 
+    /**
+     * Returns an {@linkplain Collections#unmodifiableSet(Set)
+     * unmodifiable <code>Set</code>} of resource and provider
+     * classes.
+     *
+     * <p>This method never returns {@code null}.</p>
+     *
+     * @return a non-{@code null}, {@linkplain
+     * Collections#unmodifiableSet(Set) unmodifiable <code>Set</code>}
+     * of resource and provider classes.
+     */
     @Override
     public final Set<Class<?>> getClasses() {
       return this.classes;
+    }
+    
+  }
+
+  /**
+   * A {@link Qualifier} annotation indicating that a {@link
+   * BeanAttributes} implementation is a JAX-RS resource class.
+   *
+   * <p>This annotation cannot be applied manually to any Java element
+   * but can be used as an input to the {@link
+   * BeanManager#getBeans(Type, Annotation...)} method.</p>
+   *
+   * @author <a href="https://about.me/lairdnelson"
+   * target="_parent">Laird Nelson</a>
+   */
+  @Documented
+  @Inherited
+  @Qualifier
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target({ })
+  public @interface ResourceClass {
+
+    /**
+     * A {@link ResourceClass} implementation.
+     *
+     * @author <a href="https://about.me/lairdnelson"
+     * target="_parent">Laird Nelson</a>
+     *
+     * @see #INSTANCE
+     */
+    public static final class Literal extends AnnotationLiteral<ResourceClass> implements ResourceClass {
+
+      private static final long serialVersionUID = 1L;
+
+      /**
+       * The sole instance of this class.
+       *
+       * <p>This field is never {@code null}.</p>
+       */
+      public static final ResourceClass INSTANCE = new Literal();
+      
     }
     
   }

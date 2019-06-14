@@ -23,5 +23,7 @@
  *
  * @author <a href="https://about.me/lairdnelson"
  * target="_parent">Laird Nelson</a>
+ *
+ * @see org.microbean.jaxrs.cdi.JaxRsExtension
  */
 package org.microbean.jaxrs.cdi;
