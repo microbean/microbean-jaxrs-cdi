@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>microbean-jaxrs-cdi</artifactId>
-  <version>0.0.3-SNAPSHOT</version>
+  <version>0.1.0-SNAPSHOT</version>
 
   <parent>
     <groupId>org.microbean</groupId>
@@ -12,9 +12,10 @@
     <relativePath />
   </parent>
 
-  <name>microBean™ JAX-RS CDI Integration</name>
+  <name>microBean™ Jakarta RESTful Web Services CDI Integration</name>
   <description>${project.name}</description>
   <url>http://microbean.github.io/${project.artifactId}</url>
+  <inceptionYear>2019</inceptionYear>
 
   <scm>
     <connection>scm:git:git@github.com:microbean/${project.artifactId}.git</connection>
@@ -38,7 +39,7 @@
       <dependency>
         <groupId>org.microbean</groupId>
         <artifactId>microbean-base-specification</artifactId>
-        <version>0.4.8</version>
+        <version>0.5.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -46,7 +47,7 @@
       <dependency>
         <groupId>org.microbean</groupId>
         <artifactId>microbean-weld-se-environment</artifactId>
-        <version>0.6.2</version>
+        <version>0.7.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -54,14 +55,12 @@
 
       <!-- Normal dependencies. -->
 
-      
+
       <dependency>
-        <groupId>javax.ws.rs</groupId>
-        <artifactId>javax.ws.rs-api</artifactId>
-        <version>2.1.1</version>
-        <type>jar</type>
+        <groupId>jakarta.ws.rs</groupId>
+        <artifactId>jakarta.ws.rs-api</artifactId>
+        <version>2.1.6</version>
       </dependency>
-      
 
     </dependencies>
   </dependencyManagement>
@@ -101,10 +100,10 @@
 
     <!-- Provided-scoped dependencies. -->
 
-    
+
     <dependency>
-      <groupId>javax.ws.rs</groupId>
-      <artifactId>javax.ws.rs-api</artifactId>
+      <groupId>jakarta.ws.rs</groupId>
+      <artifactId>jakarta.ws.rs-api</artifactId>
       <type>jar</type>
       <scope>provided</scope>
     </dependency>
@@ -115,9 +114,6 @@
       <type>pom</type>
       <scope>provided</scope>
     </dependency>
-
-
-    <!-- Compile-scoped dependencies. -->
 
 
   </dependencies>
@@ -145,7 +141,7 @@
 
   <properties>
     <runBlockingTests>false</runBlockingTests>
-    <links>https://docs.jboss.org/cdi/api/2.0/,http://javax-inject.github.io/javax-inject/api/,https://jax-rs.github.io/apidocs/2.1/</links>
+    <links>https://jakarta.ee/specifications/cdi/2.0/apidocs/,https://jakarta.ee/specifications/restful-ws/2.1/apidocs/,https://jakarta.ee/specifications/dependency-injection/1.0/apidocs/</links>
     <stylesheetfile>css/stylesheet.css</stylesheetfile>
   </properties>
 

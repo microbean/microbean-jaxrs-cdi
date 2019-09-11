@@ -16,10 +16,11 @@
  */
 
 /**
- * Provides classes and interfaces for integrating certain <a
- * href="https://jax-rs.github.io/" target="_parent">JAX-RS</a>
- * constructs into <a href="http://cdi-spec.org/" target="_parent">CDI
- * 2.0</a> environments.
+ * Provides classes and interfaces for integrating
+ * certain <a href="https://jakarta.ee/specifications/restful-ws/2.1/"
+ * target="_parent">Jakarta RESTful Web Services</a> constructs
+ * into <a href="https://jakarta.ee/specifications/cdi/2.0/"
+ * target="_parent">CDI 2.0</a> environments.
  *
  * @author <a href="https://about.me/lairdnelson"
  * target="_parent">Laird Nelson</a>
