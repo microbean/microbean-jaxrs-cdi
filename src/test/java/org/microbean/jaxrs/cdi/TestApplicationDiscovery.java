@@ -102,18 +102,20 @@ public class TestApplicationDiscovery {
 
   }
 
+  @Path("")
   private static final class MyResource {
 
-    @Path("/myresource")
+    @Path("myresource")
     public void myResource() {
 
     }
     
   }
 
+  @Path("")
   private static final class UnclaimedResource {
 
-    @Path("/unclaimedResource")
+    @Path("unclaimedResource")
     public void unclaimedResource() {
 
     }
