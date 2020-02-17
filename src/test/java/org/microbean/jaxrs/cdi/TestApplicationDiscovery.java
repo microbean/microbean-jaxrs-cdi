@@ -1,6 +1,6 @@
 /* -*- mode: Java; c-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8-unix -*-
  *
- * Copyright © 2019 microBean™.
+ * Copyright © 2019–2020 microBean™.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,11 +32,11 @@ import javax.ws.rs.Path;
 
 import javax.ws.rs.core.Application;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ApplicationScoped
 public class TestApplicationDiscovery {
@@ -47,7 +47,7 @@ public class TestApplicationDiscovery {
     super();
   }
 
-  @Before
+  @BeforeEach
   public void startContainer() throws Exception {
     this.stopContainer();
     final SeContainerInitializer initializer = SeContainerInitializer.newInstance();
@@ -65,7 +65,7 @@ public class TestApplicationDiscovery {
     this.container = initializer.initialize();
   }
 
-  @After
+  @AfterEach
   public void stopContainer() throws Exception {
     if (this.container != null) {
       this.container.close();

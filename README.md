@@ -16,7 +16,7 @@ Include this library as a `runtime`-scoped dependency of your CDI-based Maven pr
 <dependency>
   <groupId>org.microbean</groupId>
   <artifactId>microbean-jaxrs-cdi</artifactId>
-  <version>0.1.7</version>
+  <version>0.1.8</version>
   <scope>runtime</scope>
 </dependency>
 ```
