@@ -8,7 +8,7 @@
 <div class="sourceContainer">
 <pre><span class="sourceLineNo">001</span>/* -*- mode: Java; c-basic-offset: 2; indent-tabs-mode: nil; coding: utf-8-unix -*-<a name="line.1"></a>
 <span class="sourceLineNo">002</span> *<a name="line.2"></a>
-<span class="sourceLineNo">003</span> * Copyright © 2019 microBean™.<a name="line.3"></a>
+<span class="sourceLineNo">003</span> * Copyright © 2019–2020 microBean™.<a name="line.3"></a>
 <span class="sourceLineNo">004</span> *<a name="line.4"></a>
 <span class="sourceLineNo">005</span> * Licensed under the Apache License, Version 2.0 (the "License");<a name="line.5"></a>
 <span class="sourceLineNo">006</span> * you may not use this file except in compliance with the License.<a name="line.6"></a>
@@ -40,11 +40,11 @@
 <span class="sourceLineNo">032</span><a name="line.32"></a>
 <span class="sourceLineNo">033</span>import javax.ws.rs.core.Application;<a name="line.33"></a>
 <span class="sourceLineNo">034</span><a name="line.34"></a>
-<span class="sourceLineNo">035</span>import org.junit.After;<a name="line.35"></a>
-<span class="sourceLineNo">036</span>import org.junit.Before;<a name="line.36"></a>
-<span class="sourceLineNo">037</span>import org.junit.Test;<a name="line.37"></a>
+<span class="sourceLineNo">035</span>import org.junit.jupiter.api.AfterEach;<a name="line.35"></a>
+<span class="sourceLineNo">036</span>import org.junit.jupiter.api.BeforeEach;<a name="line.36"></a>
+<span class="sourceLineNo">037</span>import org.junit.jupiter.api.Test;<a name="line.37"></a>
 <span class="sourceLineNo">038</span><a name="line.38"></a>
-<span class="sourceLineNo">039</span>import static org.junit.Assert.assertNotNull;<a name="line.39"></a>
+<span class="sourceLineNo">039</span>import static org.junit.jupiter.api.Assertions.assertNotNull;<a name="line.39"></a>
 <span class="sourceLineNo">040</span><a name="line.40"></a>
 <span class="sourceLineNo">041</span>@ApplicationScoped<a name="line.41"></a>
 <span class="sourceLineNo">042</span>public class TestApplicationDiscovery {<a name="line.42"></a>
@@ -55,7 +55,7 @@
 <span class="sourceLineNo">047</span>    super();<a name="line.47"></a>
 <span class="sourceLineNo">048</span>  }<a name="line.48"></a>
 <span class="sourceLineNo">049</span><a name="line.49"></a>
-<span class="sourceLineNo">050</span>  @Before<a name="line.50"></a>
+<span class="sourceLineNo">050</span>  @BeforeEach<a name="line.50"></a>
 <span class="sourceLineNo">051</span>  public void startContainer() throws Exception {<a name="line.51"></a>
 <span class="sourceLineNo">052</span>    this.stopContainer();<a name="line.52"></a>
 <span class="sourceLineNo">053</span>    final SeContainerInitializer initializer = SeContainerInitializer.newInstance();<a name="line.53"></a>
@@ -73,7 +73,7 @@
 <span class="sourceLineNo">065</span>    this.container = initializer.initialize();<a name="line.65"></a>
 <span class="sourceLineNo">066</span>  }<a name="line.66"></a>
 <span class="sourceLineNo">067</span><a name="line.67"></a>
-<span class="sourceLineNo">068</span>  @After<a name="line.68"></a>
+<span class="sourceLineNo">068</span>  @AfterEach<a name="line.68"></a>
 <span class="sourceLineNo">069</span>  public void stopContainer() throws Exception {<a name="line.69"></a>
 <span class="sourceLineNo">070</span>    if (this.container != null) {<a name="line.70"></a>
 <span class="sourceLineNo">071</span>      this.container.close();<a name="line.71"></a>
